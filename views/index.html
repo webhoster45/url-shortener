@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File compressor</title>
+    <style>
+      body{
+        align-items: center;
+        justify-content: center;
+        /* height: 100vh; */
+        display: flex;
+        font-family: Arial, Helvetica, sans-serif;
+        flex-direction: column;
+      }
+
+      form{
+        
+      }
+
+      h3{
+        color: blue;
+      }
+
+      #form{
+        max-width: 900px;
+        box-shadow: 0 0 12px rgb(0,0,0,0.5);
+        padding: 40px;
+        border-radius: 12px;
+
+      }
+      #compressbtn{
+        width: 40%;
+        padding: 6px;
+        border: none;
+        box-shadow: 0 0 12px rgb(0,0,0,0.1);
+        border-radius: 5px;
+        color: white;
+        background-color: blue;
+      }
+      #file-upload{
+      border: none;
+      padding: 13px;
+      }
+ 
+
+      #thesection{
+      }
+
+      #thesection div{
+        display: flex;
+        gap: 120px;
+        box-shadow: 0 0 12px rgb(0,0,0,0.5);
+        padding: 9px;
+        border-radius: 15px;
+        max-width: 800px;
+      }
+      #thesection div p{
+        font-weight: bold;
+        color: blue;
+      }
+      #thesection div a{
+        /* padding-top: 17px; */
+        text-decoration: none;
+        color: white;
+        background-color: blue;
+        padding: 6px;
+        border-radius: 5px;
+        height: 19px;
+        margin-top: 11px;
+        font-size: 13px;
+        font-weight: bold;
+      }
+    </style>
+</head>
+<body><br><br>
+  <h3>Mini Cloud storage</h3>
+  <!-- action="/upload"    method="post" -->
+    <form enctype="multipart/form-data" id="form">
+  <!-- <label for="file-upload">Select file:</label> -->
+
+  <center>
+      <input type="file" id="file-upload" name="upload_file" multiple /><br><br>
+  
+      <input type="submit" id="compressbtn" value="Upload">
+  </center>
+
+
+
+
+
+</form>
+<h3>History</h3>
+<section id="thesection">
+  <div id="previousfiles">
+  <p id="name">Pricelist</p>
+  <a href="">Download</a>
+</div>
+</section>
+
+
+</body>
+<script>
+  const section = document.getElementById("thesection");
+  const form = document.getElementById("form");
+
+  /* ================================
+     LOAD FILE HISTORY ON PAGE LOAD
+  ================================= */
+  window.onload = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/getallfiles");
+
+      if (!response.ok) {
+        throw new Error("Could not get files");
+      }
+
+      const datas = await response.json();
+
+      // ✅ Clear old UI first
+      section.innerHTML = "";
+
+      datas.forEach((file) => {
+        // ✅ FIX 1: Create div properly
+        const div = document.createElement("div");
+
+        // File name
+        const p = document.createElement("p");
+        const br= document.createElement("br");
+        p.textContent = file.originalname;
+
+        // Download button
+        const a = document.createElement("a");
+        a.textContent = "Download";
+
+        // ✅ FIX 2: Use downloadurl correctly
+        a.href = file.downloadurl;
+
+        // ✅ FIX 3: Force download instead of open
+        a.download = file.originalname;
+
+        // Append elements
+        div.appendChild(p);
+        div.appendChild(a);
+
+        // ✅ FIX 4: Append div correctly
+        section.appendChild(div);
+        section.appendChild(br)
+      });
+    } catch (err) {
+      console.log("Error loading history:", err);
+    }
+  };
+
+  /* ================================
+     HANDLE FILE UPLOAD
+  ================================= */
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const input = document.getElementById("file-upload");
+    const files = input.files;
+
+    if (files.length === 0) {
+      alert("Choose at least one file!");
+      return;
+    }
+
+    const fd = new FormData();
+
+    // ✅ Append multiple files correctly
+    for (let file of files) {
+      fd.append("files", file);
+    }
+
+    try {
+      const response = await fetch("http://localhost:3000/upload", {
+        method: "POST",
+        body: fd,
+      });
+
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const data = await response.json();
+      alert(data.message);
+
+      // ✅ Reload history after upload
+      window.location.reload();
+    } catch (err) {
+      console.log("Upload error:", err);
+    }
+  });
+</script>
+
+</html>
