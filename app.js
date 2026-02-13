@@ -1,10 +1,25 @@
 const express=require('express');
-const multer = require('multer');
-const path =require('path');
+const path=require('path');
+const PORT=process.env.PORT||5000;
+const characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const fs=require('fs').promises;
-const upload=multer({dest:'./public/uploads'});
-const PORT=process.env.PORT||3000;
-const app=express();
+
+const app=express()
+app.use(express.urlencoded({extended:true}));
+app.use(express.json());
+app.use(express.static('/public'));
+
+function generatelogic(){
+    let string='';
+    for(let i=0;i<6;i++){
+    randomize=Math.floor(Math.random()*characters.length);
+    string+=characters[randomize];
+
+    }
+    return string;
+}
+
+// console.log(generatelogic())
 
 const getPath = (file) => path.join(__dirname, file);
 
@@ -25,42 +40,29 @@ async function writeJSON(file, data) {
   await fs.writeFile(getPath(file), JSON.stringify(data, null, 2));
 }
 
-app.use(express.json())
-app.use(express.static(path.join(__dirname,'/public')));
-
-
 app.get('/',(req,res)=>{
-    res.sendFile(path.join(__dirname,'views','index.html'))
+    res.sendFile(path.join(__dirname,'views','index.html'));
+
 })
 
-app.post('/upload',upload.array('files'),async (req,res)=>{
-    const files=req.files;
-    const filedata=await readJSON('filedata.json')
-    files.forEach(file => {
-      let newbox={
-      savedas:file.filename,
-      originalname:file.originalname,
-      destination:file.destination,
-      downloadurl:`/uploads/${file.filename}`
+app.post('/shorten',async (req,res)=>{
+    console.log(req.body.url);
+    const store={
+        original_url:req.body.url,
+        shortcode:generatelogic(),
+        created_at:Date.now(),
+        click_count:0
     }
-    filedata.push(newbox)
-    });
-    await writeJSON('filedata.json',filedata)
-    res.json({message:'done'})
-})
+    const shortendb=await readJSON('/db/shortendb.JSON');
+    shortendb.push(store);
+    await writeJSON('/db/shortendb.JSON',shortendb);
+        res.json({message:'Uploaded',newlink:store.shortcode});
+});
 
-app.get('/getallfiles',async (req,res)=>{
-  const filedata=await readJSON('filedata.json')
-  // console.log(filedata.length)
-  res.json(filedata)
-  // for(file of filedata){
-// console.log(file[])
-    // let paths=file.path
-    //     console.log(paths)
-    // res.json({paths})
-  // }
+app.get('/:shortcode',async (req,res)=>{
+
 })
 
 app.listen(PORT,()=>{
-    console.log(`App running at PORT:${PORT}`)
+    console.log(`Listening for requests on PORT:${PORT}`)
 })
